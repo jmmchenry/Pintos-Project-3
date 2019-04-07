@@ -1,0 +1,158 @@
+﻿+---------------------------+
+                          |         CIS 520           |
+                           | PROJECT 3: Virtual Memory |
+                           |     DESIGN DOCUMENT       |
+                           +---------------------------+
+
+
+---- GROUP ----
+
+
+>> Fill in the names of your group members.
+
+
+Victor Ramos
+Carson Funk
+Jonathan McHenry
+
+
+---- PRELIMINARIES ----
+
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+
+https://github.com/ChristianJHughes/pintos-project3
+
+
+                        PAGE TABLE MANAGEMENT
+                        =====================
+
+
+---- ALGORITHMS ----
+
+
+>> A1: In a few paragraphs, describe the existing code for locating the
+>> frame, if any, that contains the data of a given page.
+
+
+Using the page id we got into lookup_page in pagedir.c. This method searches for the page in VADDR. If it cannot find a page table the system will try to create an empty page table for it. If the page table exists it returns the address to it. If the page table creation succeeds it returns the address to the new empty page table. Otherwise it returns a null pointer.
+
+
+---- SYNCHRONIZATION ----
+
+
+>> A2: When two user processes both need a new frame at the same time,
+>> how are races avoided?
+
+
+We utilized a lock called scan_lock located in frame.c that implies only one process will have access to creating a new frame at a time. This lock is acquired at the beginning of try_frame_alloc_and_lock, and because of this lock, no two processes can secure the same frame at once and avoids race conditions. In addition, the individual frames themselves have locks as well representing whether or not it is currently occupied, so we are able to determine whether or not a particular frame is available.
+
+
+
+
+                       PAGING TO AND FROM DISK
+                       =======================
+
+
+---- ALGORITHMS ----
+
+
+>> B1: When a frame is required but none is free, some frame must be
+>> evicted.  Describe the algorithm used to choose a frame to evict.
+
+
+During the second for loop in try_frame_alloc_and_lock, located in frame.c, the function tries to find a free frame based on how frequently each particular frame has been accessed. The loop begins by looping through all of the frames, trying to determine whether any of the frames may be evicted. If the lock associated with the given frame cannot be accessed for any reason then the next frame is assessed. If this is not the case, an if statement determines whether the page associated with the frame is null. If it is, our page is assigned to this frame and the frame is returned. If not, the loop determines whether the frame has been accessed recently, and if it has the loop goes onto the next frame. If it is determined that every frame has been accessed recently, we loop through the frames one more time because it is likely that after calling page_accessed_recently() on all the frames that at least one of them will be available upon calling them again. 
+
+
+>> B2: Explain your heuristic for deciding whether a page fault for an
+>> invalid virtual address should cause the stack to be extended into
+>> the page that faulted.
+
+
+Before a page is allocated, we have two checks. First, the address of the page rounded down to the nearest page boundary is seen to be within the allocated stack space. Secondly, we check if the unrounded page address is within 32 bytes of the threads’ user_esp. This second check aligns well with commands managing stack memory, such as PUSH and PUSHA that accesses at most 32 bytes beyond the stack pointer.
+
+
+                         MEMORY MAPPED FILES
+                         ===================
+
+
+---- DATA STRUCTURES ----
+
+
+>> C1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+
+All the structs were added already. No modifications were made.
+
+
+---- ALGORITHMS ----
+
+
+>> C2: Describe how memory mapped files integrate into your virtual
+>> memory subsystem.  Explain how the page fault and eviction
+>> processes differ between swap pages and other pages.
+
+
+We utilized a struct called ‘mapping’ in order to encapsulate memory mapped files in syscall.c. Each struct contains a pointer to its address in memory as well as the file that it maps. In addition, threads contain a list of all files mapped to that specific thread. 
+For memory mapped files, page fault and evictions processes differ moderately. By using swap partitions and upon eviction, non-file related pages are moved regardless of whether the page is dirty or not. When memory mapped file pages are evicted, we must write back to the original file only if modified. If not, no writing is necessary and the swap partition is avoided for memory mapped files.
+
+
+>> C3: Explain how you determine whether a new file mapping overlaps
+>> any existing segment.
+
+
+In page_allocation, in page.c, the system will fail the mapping if the VADDR is already mapped to our page hash table. The system will also fail the mapping if the memory allocation fails. If the VADDR is not in our hash table and has enough memory, page_allocation will return the page so that it can be added to the hash table.
+
+
+---- RATIONALE ----
+
+
+>> C4: Mappings created with "mmap" have similar semantics to those of
+>> data demand-paged from executables, except that "mmap" mappings are
+>> written back to their original files, not to swap.  This implies
+>> that much of their implementation can be shared.  Explain why your
+>> implementation either does or does not share much of the code for
+>> the two situations.
+
+
+These processes are mainly shared in our implementation. For any page it will go through the function page_out() in page.c regardless of the origin of the page. However, we do check if the page should be written back to the disk. If the page is marked as private then it should be swapped, otherwise it should be written back to the file on the disk. 
+
+
+                           SURVEY QUESTIONS
+                           ================
+
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters or the remaining projects?
+
+
+>> Any other comments?

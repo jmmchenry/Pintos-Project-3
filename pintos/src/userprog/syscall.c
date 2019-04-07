@@ -495,7 +495,6 @@ lookup_mapping (int handle)
       if (m->handle == handle)
         return m;
     }
- 
   thread_exit ();
 }
 
@@ -507,22 +506,15 @@ unmap (struct mapping *m)
 /* add code here */
   list_remove(&m->elem);
   int count = 0;
-  int count2 = 0;
   while(count < m->page_cnt){
     if(pagedir_is_dirty(thread_current()->pagedir, m->base + PGSIZE * count)){
       lock_acquire(&fs_lock);
       file_write_at(m->file, m->base + PGSIZE * count, PGSIZE * m->page_cnt, PGSIZE * count);
       lock_release(&fs_lock);
     }
+	page_deallocate(m->base + PGSIZE * count);
     count++;
   }
-  
-  while(count2 < m->page_cnt){
-    page_deallocate(m->base + PGSIZE * count2);
-    count2++;
-  }
-  
-  
 }
  
 /* Mmap system call. */
