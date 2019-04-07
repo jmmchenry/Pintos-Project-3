@@ -53,7 +53,7 @@ page_for_addr (const void *address)
       /* No page.  Expand stack? */
 
 /* add code */
-
+      if((PHYS_BASE - STACK_MAX < p.addr) && (address > thread_current()->user_esp - 32)) return page_allocate(p.addr, false);
     }
   return NULL;
 }
@@ -147,7 +147,30 @@ page_out (struct page *p)
 
 /* add code here */
 
-  /* Has the frame been modified? */
+  pagedir_clear_page(p->thread->pagedir, p->addr);
+
+  if(!(pagedir_is_dirty(p->thread->pagedir, p->addr))){
+    ok = true;
+    dirty = false;
+  }
+  else {
+    dirty = true;
+  }
+  
+  if(p->file != NULL){
+    if(dirty){
+      if(p->private){
+        ok = swap_out(p);
+      }
+      else{
+        ok = file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset);
+      }
+    }
+  }
+  else {
+    ok = swap_out(p);
+  }
+  if(ok) p->frame = NULL;
 
 /* add code here */
 
